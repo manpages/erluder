@@ -24,7 +24,7 @@ run(File, Arg) ->
 	
 	Hdr = <<
 		<<"-module(">>/binary, Modname/binary, <<").">>/binary, $\n,
-		<<"-export([out/1]).\n-include_lib(\"sch/include/hehe.hrl\").">>/binary, $\n,
+		<<"-export([out/1]).\n-include_lib(\"application/include/hehe.hrl\").">>/binary, $\n,
 		IHdr/binary, $\n,
 		<<"out(Arg) -> hehe:init(), ">>/binary
 	>>,
