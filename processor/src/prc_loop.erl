@@ -22,6 +22,7 @@ start() ->
 .
 
 run_cmd(OScmd, Task) ->
+	?debugFmt("~p", [OScmd]),
 	prc_main ! 
 		{started, [
 			{pid, self()},
@@ -72,7 +73,8 @@ exec(X) ->
 		_ -> {ok, spawn(?MODULE, run_cmd, [OScmd, X])}
 	end
 .
-exec(TaskID,Bin,Params) -> {ok, spawn(?MODULE,  run_cmd, [Bin ++ " " ++ Params, TaskID])}.
+exec(TaskID,Bin,Params) -> 
+	{ok, spawn(?MODULE,  run_cmd, [Bin ++ " " ++ Params, TaskID])}.
 
 params(X) ->
 	case fission_syn:get({params, X}) of
@@ -108,22 +110,23 @@ loop() ->
 			end,
 			loop();
 		{started, Info} ->
-			?debugFmt("Processor is running ~p", [lists:keyfind(cmd, 2, Info)]),
+			?debugFmt("Processor is running ~p", [lists:keyfind(cmd, 1, Info)]),
 			rpc:async_call(get_overseer(), sch_remote, started, [
 				node(), 
-				lists:keyfind(task, 2, Info), 
-				lists:keyfind(cmd, 2, Info)
+				lists:keyfind(task, 1, Info), 
+				lists:keyfind(cmd, 1, Info)
 			]),
 			loop();
 		{done, Info} ->
 			?debugFmt("Processor finished running ~p~nResult: ~p", [
-				lists:keyfind(cmd, 2, Info),
-				lists:keyfind(result, 2, Info)
+				lists:keyfind(cmd, 1, Info),
+				lists:keyfind(result, 1, Info)
 			]),
 			rpc:async_call(get_overseer(), sch_remote, done, [
 				node(), 
-				lists:keyfind(task, 2, Info), 
-				lists:keyfind(result, 2, Info)
+				lists:keyfind(task, 1, Info), 
+				lists:keyfind(cmd, 1, Info),
+				lists:keyfind(result, 1, Info)
 			]),
 			loop();
 		%utility stuff
