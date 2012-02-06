@@ -6,3 +6,5 @@ fallback(_X) ->
 	_Y = {value, foo},
 	_Z = {result, bar},
 	false.
+
+postprocess(X) -> X.

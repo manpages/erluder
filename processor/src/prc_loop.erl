@@ -126,7 +126,7 @@ loop() ->
 				node(), 
 				lists:keyfind(task, 1, Info), 
 				lists:keyfind(cmd, 1, Info),
-				lists:keyfind(result, 1, Info)
+				prc_extension:postprocess(lists:keyfind(result, 1, Info))
 			]),
 			loop();
 		%utility stuff
