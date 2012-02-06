@@ -21,10 +21,21 @@ start() ->
 	{ok, PID}
 .
 
-run_cmd(OScmd) ->
-	prc_main ! {started, {self(), OScmd}},
-	prc_main ! {done, {self(), os:cmd(OScmd)}},
-	ok
+run_cmd(OScmd, Task) ->
+	prc_main ! 
+		{started, [
+			{pid, self()},
+			{cmd, OScmd},
+			{task, Task}
+		]},
+	prc_main ! 
+		{done, [
+			{pid, self()}, 
+			{cmd, OScmd},
+			{result, os:cmd(OScmd)},
+			{task, Task}
+		]},
+	{ok, self()}
 .
 
 get_overseer() ->
@@ -43,19 +54,25 @@ exec(X) ->
 		{value, Bin} -> 
 			Bin ++ " " ++ params(X);
 		false -> 
-			case prc_extension:get_cmd(X) of
+			case prc_extension:fallback(X) of
 				{value, Xbin} -> 
 					Xbin ++ " " ++ params(X);
+
+				% we could just wildcard X -> X here, but we 
+				% are referring to the 'protocol' that way
+				{result, Result} ->
+					{result, Result};
 				false ->
 					false
 			end
 	end,
 	case OScmd of
+		{result, X} -> {result, X};
 		false -> not_found;
-		_ -> {ok, spawn(?MODULE, run_cmd, [OScmd])}
+		_ -> {ok, spawn(?MODULE, run_cmd, [OScmd, X])}
 	end
 .
-exec(Bin,Params) -> {ok, spawn(?MODULE,  run_cmd, [Bin ++ " " ++ Params])}.
+exec(TaskID,Bin,Params) -> {ok, spawn(?MODULE,  run_cmd, [Bin ++ " " ++ Params, TaskID])}.
 
 params(X) ->
 	case fission_syn:get({params, X}) of
@@ -90,7 +107,25 @@ loop() ->
 					erlang:error("Not gonna happen.")
 			end,
 			loop();
-		{run
+		{started, Info} ->
+			?debugFmt("Processor is running ~p", [lists:keyfind(cmd, 2, Info)]),
+			rpc:async_call(get_overseer(), sch_remote, started, [
+				node(), 
+				lists:keyfind(task, 2, Info), 
+				lists:keyfind(cmd, 2, Info)
+			]),
+			loop();
+		{done, Info} ->
+			?debugFmt("Processor finished running ~p~nResult: ~p", [
+				lists:keyfind(cmd, 2, Info),
+				lists:keyfind(result, 2, Info)
+			]),
+			rpc:async_call(get_overseer(), sch_remote, done, [
+				node(), 
+				lists:keyfind(task, 2, Info), 
+				lists:keyfind(result, 2, Info)
+			]),
+			loop();
 		%utility stuff
 		{nodedown, X} ->
 			case (X == get_overseer()) of 

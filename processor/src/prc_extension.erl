@@ -2,5 +2,7 @@
 
 -compile(export_all).
 
-get_cmd(_X) ->
+fallback(_X) ->
+	_Y = {value, foo},
+	_Z = {result, bar},
 	false.

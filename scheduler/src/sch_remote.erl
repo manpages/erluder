@@ -23,3 +23,13 @@ hello(Node, Type) ->
 	end,
 	{ok, fission_syn:get({node, Node})}
 .
+
+started(Node, Task, Cmd) ->
+	fission_tuple:set(
+		{node, Node},#nodeT.state, 
+		{working, [
+			{task, Task}, 
+			{cmd, Cmd}
+		]}
+	),
+
