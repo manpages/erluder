@@ -51,6 +51,7 @@ set_overseer(Node) -> %TODO: handle dynamic change of overseer
 .
 
 exec(X) -> 
+	?debugFmt("***~nStuff to do!~nRaw: ~p~n***", [X]),
 	OScmd = case fission_syn:get({cmd, X}) of 
 		{value, Bin} -> 
 			Bin ++ " " ++ params(X);
@@ -61,8 +62,9 @@ exec(X) ->
 
 				% we could just wildcard X -> X here, but we 
 				% are referring to the 'protocol' that way
-				{result, Result} ->
-					{result, Result};
+
+				{result, Result} ->   % !!!FOR FAST ERLANG STUFF
+					{result, Result}; % ONLY!!!
 				false ->
 					false
 			end
