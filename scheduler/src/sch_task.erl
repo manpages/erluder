@@ -68,7 +68,7 @@ queue_task(DecodedTask, TopOrBottom) ->
 			NewSeed = push_caret(),
 			fission_zset:set(
 				queue, 
-				TID, 
+				TID,
 				NewSeed
 			),
 			fission_syn:set({task, TID},
