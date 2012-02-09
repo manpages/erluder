@@ -26,6 +26,7 @@ hello(Node, Type) ->
 .
 
 started(Node, Task, Cmd) ->
+	?debugFmt("***~nTASK EXECUTION STARTED~n~p~n***", [{Node, Task, Cmd}]),
 	fission_tuple:set(
 		{node, Node}, #nodeT.state, {working, [Task, Cmd, {result, undefined}]}
 	),
@@ -44,6 +45,7 @@ started(Node, Task, Cmd) ->
 
 
 done(Node, Task, Cmd, Result) ->
+	?debugFmt("***~nTASK EXECUTION FINISHED~n~p~n***", [{Node, Task, Cmd, Result}]),
 	fission_tuple:set(
 		{node, Node}, #nodeT.state, {idle, [Task, Cmd, Result]}
 	),
@@ -61,8 +63,11 @@ done(Node, Task, Cmd, Result) ->
 	{ok, roll_node(Node)}
 .	
 
-queue(Task, Score) ->
-	fission_zset:set(queue, Score, sch_extension:encode_task(Task)),
+queue(Task) ->
+	queue(Task, bottom)
+.
+queue(Task, TopOrBottom) ->
+	sch_task:queue_task(Task, TopOrBottom),
 	sch_main ! queue.
 
 

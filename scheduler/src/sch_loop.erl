@@ -33,13 +33,6 @@ get_node(Nodes) -> % TODO: Y-combinator, anyone?
 	)
 .
 
-get_top_task(raw) -> 
-	case  fission_zset:part_left(queue,0,1) of 
-		{result, [{RawTask, TaskID}]} -> RawTask;
-		_ -> false
-	end
-.
-
 loop() ->
 	?debugMsg("Entered main loop"),
 	net_kernel:monitor_nodes(false), %dirty-dirty
@@ -54,22 +47,29 @@ loop() ->
 			ok;
 		{assign, Node} ->
 			?debugFmt("~p is idle, searching for task to assign", [Node]),
-			case  fission_zset:part_left(queue,0,1) of 
-				{result, [{RawTask, TaskID}]} -> 
-					?debugFmt("Task ~p found.~nRaw task:~p~n representation: ~p", [
-						TaskID, 
-						RawTask, 
-						sch_extension:decode_task(RawTask)
+			case fission_zset:part_left(
+				queue,
+				sch_task:get_caret() - sch_task:get_top_seed(),
+				1
+			) of 
+				{result, [{Seed, TaskID}]} -> 
+					?debugFmt("Found. Task:~n~p~nSeed:~p~n", [
+						sch_task:get(TaskID), 
+						Seed
 					]),
-					case rpc:call(Node, prc_loop, exec, [sch_extension:decode_task(TaskID)]) of
+					case rpc:call(Node, prc_loop, exec, [sch_task:get(TaskID)]) of
 						{ok, _PID} -> 
+							sch_task:pop_caret(),
+							fission_list:push(assigned, TaskID),
 							?debugFmt("The task is successfully assigned to ~p", [Node]);
 						not_found ->
 							?debugFmt("~p can't perform the task", [Node]),
-							fission_list:push({task, RawTask, blacklist}, Node);
+							fission_list:push({task, TaskID, blacklist}, Node);
 						{result, Res} ->
+							sch_task:pop_caret(),
+							fission_list:push(assigned, TaskID),
 							?debugFmt("The task is solved by ~p's processor extension", [Node]),
-							sch_remote:done(Node, RawTask, undefined, Res)
+							sch_remote:done(Node, {task, Seed}, {cmd, undefined}, {result, Res}) % <- nice arg format huh?
 					end;
 				_ -> 
 					?debugMsg("No tasks in queue"),
@@ -80,7 +80,13 @@ loop() ->
 			?debugMsg("New task is queued. Searching for node to assign task to"),
 			sch_remote:roll_node(
 				get_node(
-					fission_syn:get_def({lists, processor}, []) -- fission_syn:get_def({task, get_top_task(raw), blacklist}, [])
+					fission_syn:get_def(
+						{lists, processor}, 
+						[]
+					) -- fission_syn:get_def(
+						{task, erlang:element(2, sch_task:get_top()), blacklist}, 
+						[]
+					)
 				)
 			),
 			loop();

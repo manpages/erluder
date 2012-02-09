@@ -105,10 +105,7 @@ loop() ->
 				pong -> 
 					?debugFmt("~p reached, saying hi and waiting for orders", [OverNode]),
 					RetVal = rpc:call(OverNode, sch_remote, hello, [node(), processor]),
-					?debugFmt("Remote call returned: ~p~n", [RetVal]);
-				_    ->
-					?debugMsg("w.t.f"),
-					erlang:error("Not gonna happen.")
+					?debugFmt("Remote call returned: ~p~n", [RetVal])
 			end,
 			loop();
 		{started, Info} ->
